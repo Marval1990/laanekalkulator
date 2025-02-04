@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
     <meta charset="UTF-8">
-    <title>Detaljert nedbetalingsplan</title>
+    <title>Lånekalkulator med effektiv rente</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
         .container { background: #f5f5f5; padding: 20px; border-radius: 8px; }
@@ -21,7 +21,7 @@
 </head>
 <body>
     <div class="container">
-        <h2>Detaljert nedbetalingsplan</h2>
+        <h2>Avdragskalkulator med effektiv rente</h2>
         
         <div class="input-group">
             <label>Lånebeløp (kr):</label>
@@ -37,6 +37,11 @@
             <label>Nedbetalingstid (år):</label>
             <input type="number" id="loanTerm" value="10">
         </div>
+
+        <div class="input-group">
+            <label>Gebyrer (kr):</label>
+            <input type="number" id="fees" value="0">
+        </div>
         
         <button onclick="beregnDetaljer()">Vis nedbetalingsplan</button>
 
@@ -49,6 +54,7 @@
             const P = parseFloat(document.getElementById('loanAmount').value);
             const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
             const years = parseFloat(document.getElementById('loanTerm').value);
+            const fees = parseFloat(document.getElementById('fees').value) || 0;
             
             const monthlyRate = annualRate / 12;
             const months = years * 12;
@@ -57,9 +63,13 @@
             const monthlyPayment = (P * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
                                  (Math.pow(1 + monthlyRate, months) - 1);
             
+            // Beregn effektiv rente
+            const effectiveRate = beregnEffektivRente(P, fees, monthlyPayment, months);
+            
             // Vis hovedresultat
             document.getElementById('resultat').innerHTML = `
                 <h3>Månedlig betaling: ${formatCurrency(monthlyPayment)}</h3>
+                <h3>Effektiv rente inkl. gebyrer: ${effectiveRate.toFixed(2)}%</h3>
             `;
 
             // Generer detaljert plan
@@ -77,7 +87,7 @@
                             <th>Måned</th>
                             <th>Betaling</th>
                             <th>Rente</th>
-                            <th>Hovedstol</th>
+                            <th>Avdrag</th>
                             <th>Gjenstående</th>
                         </tr>`;
                 
@@ -100,6 +110,31 @@
             }
             
             document.getElementById('nedbetalingsplan').innerHTML = html;
+        }
+
+        function beregnEffektivRente(principal, fees, monthlyPayment, months) {
+            const nettoLaan = principal - fees;
+            let rate = 0.0001; // Startverdi
+            let diff = 1;
+            const epsilon = 0.000001; // Presisjon
+            
+            for(let i = 0; i < 100 && diff > epsilon; i++) {
+                let NPV = -nettoLaan;
+                let derivert = 0;
+                
+                for(let m = 1; m <= months; m++) {
+                    const factor = Math.pow(1 + rate, m);
+                    NPV += monthlyPayment / factor;
+                    derivert += -monthlyPayment * m / Math.pow(1 + rate, m + 1);
+                }
+                
+                const oldRate = rate;
+                rate -= NPV/derivert;
+                diff = Math.abs(rate - oldRate);
+            }
+            
+            // Konverter til årlig effektiv rente
+            return (Math.pow(1 + rate, 12) - 1) * 100;
         }
 
         function formatCurrency(amount) {
