@@ -1,150 +1,169 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-    <meta charset="UTF-8">
-    <title>Lånekalkulator med effektiv rente</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
-        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: inline-block; width: 180px; }
-        input { width: 150px; padding: 5px; }
-        button { background: #004a8f; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #003366; }
-        #resultat, #nedbetalingsplan { margin-top: 20px; padding: 15px; background: white; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-        .year-header { background: #e0e0e0; cursor: pointer; margin-top: 10px; padding: 10px; border-radius: 4px; }
-        .month-details { display: none; }
-        .visible { display: table-row-group; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Lånekalkulator med effektiv rente</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+    .container { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+    .input-group { margin-bottom: 15px; }
+    label { display: inline-block; width: 180px; }
+    input { width: 150px; padding: 5px; }
+    button { background: #004a8f; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #003366; }
+    #resultat, #nedbetalingsplan { margin-top: 20px; padding: 15px; background: white; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    .year-header { background: #e0e0e0; cursor: pointer; margin-top: 10px; padding: 10px; border-radius: 4px; }
+    .month-details { display: none; }
+    .visible { display: table-row-group; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Avdragskalkulator med effektiv rente</h2>
-        
-        <div class="input-group">
-            <label>Lånebeløp (kr):</label>
-            <input type="number" id="loanAmount" value="4000000">
-        </div>
-        
-        <div class="input-group">
-            <label>Årlig rente (%):</label>
-            <input type="number" id="interestRate" value="6" step="0.1">
-        </div>
-        
-        <div class="input-group">
-            <label>Nedbetalingstid (år):</label>
-            <input type="number" id="loanTerm" value="10">
-        </div>
-
-        <div class="input-group">
-            <label>Gebyrer (kr):</label>
-            <input type="number" id="fees" value="0">
-        </div>
-        
-        <button onclick="beregnDetaljer()">Vis nedbetalingsplan</button>
-
-        <div id="resultat"></div>
-        <div id="nedbetalingsplan"></div>
+  <div class="container">
+    <h2>Avdragskalkulator med effektiv rente</h2>
+    
+    <div class="input-group">
+      <label for="loanAmount">Lånebeløp (kr):</label>
+      <input type="number" id="loanAmount" value="4000000">
     </div>
-
-    <script>
-        function beregnDetaljer() {
-            const P = parseFloat(document.getElementById('loanAmount').value);
-            const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
-            const years = parseFloat(document.getElementById('loanTerm').value);
-            const fees = parseFloat(document.getElementById('fees').value) || 0;
-            
-            const monthlyRate = annualRate / 12;
-            const months = years * 12;
-            
-            // Beregn månedlig betaling
-            const monthlyPayment = (P * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
-                                 (Math.pow(1 + monthlyRate, months) - 1);
-            
-            // Beregn effektiv rente
-            const effectiveRate = beregnEffektivRente(P, fees, monthlyPayment, months);
-            
-            // Vis hovedresultat
-            document.getElementById('resultat').innerHTML = `
-                <h3>Månedlig betaling: ${formatCurrency(monthlyPayment)}</h3>
-                <h3>Effektiv rente inkl. gebyrer: ${effectiveRate.toFixed(2)}%</h3>
-            `;
-
-            // Generer detaljert plan
-            let remainingBalance = P;
-            let html = `<h3>Årlig og månedlig nedbetalingsoversikt</h3>`;
-            
-            for(let year = 1; year <= years; year++) {
-                html += `
-                <div class="year-group">
-                    <div class="year-header" onclick="toggleYear(${year})">
-                        År ${year} - Gjenstående beløp: ${formatCurrency(remainingBalance)}
-                    </div>
-                    <table class="month-details" id="year-${year}">
-                        <tr>
-                            <th>Måned</th>
-                            <th>Betaling</th>
-                            <th>Rente</th>
-                            <th>Avdrag</th>
-                            <th>Gjenstående</th>
-                        </tr>`;
-                
-                for(let month = 1; month <= 12; month++) {
-                    const interest = remainingBalance * monthlyRate;
-                    const principal = monthlyPayment - interest;
-                    remainingBalance -= principal;
-                    
-                    html += `
-                        <tr>
-                            <td>Mnd ${month}</td>
-                            <td>${formatCurrency(monthlyPayment)}</td>
-                            <td>${formatCurrency(interest)}</td>
-                            <td>${formatCurrency(principal)}</td>
-                            <td>${formatCurrency(remainingBalance)}</td>
-                        </tr>`;
-                }
-                
-                html += `</table></div>`;
-            }
-            
-            document.getElementById('nedbetalingsplan').innerHTML = html;
+    
+    <div class="input-group">
+      <label for="interestRate">Årlig rente (%):</label>
+      <input type="number" id="interestRate" value="6" step="0.1">
+    </div>
+    
+    <div class="input-group">
+      <label for="loanTerm">Nedbetalingstid (år):</label>
+      <input type="number" id="loanTerm" value="10">
+    </div>
+    
+    <div class="input-group">
+      <label for="fees">Gebyrer (kr):</label>
+      <input type="number" id="fees" value="0">
+    </div>
+    
+    <button id="calcBtn">Vis nedbetalingsplan</button>
+    
+    <div id="resultat"></div>
+    <div id="nedbetalingsplan"></div>
+  </div>
+  
+  <script>
+    // Legg på event listener istedenfor inline onclick
+    document.getElementById('calcBtn').addEventListener('click', beregnDetaljer);
+    
+    function beregnDetaljer() {
+      const P = parseFloat(document.getElementById('loanAmount').value);
+      const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
+      const years = parseFloat(document.getElementById('loanTerm').value);
+      const fees = parseFloat(document.getElementById('fees').value) || 0;
+      
+      const months = years * 12;
+      const monthlyRateNominal = annualRate / 12;
+      let monthlyPayment;
+      
+      // Sjekk for 0 % rente for å unngå deling på 0
+      if (monthlyRateNominal === 0) {
+        monthlyPayment = P / months;
+      } else {
+        monthlyPayment = (P * monthlyRateNominal * Math.pow(1 + monthlyRateNominal, months)) / 
+                         (Math.pow(1 + monthlyRateNominal, months) - 1);
+      }
+      
+      // Beregn effektiv rente – denne metoden finner den månedlige renten
+      // slik at nåverdien av betalingene tilsvarer (lånebeløp - gebyrer)
+      const effectiveRate = beregnEffektivRente(P, fees, monthlyPayment, months);
+      
+      // Vis hovedresultat
+      document.getElementById('resultat').innerHTML = `
+        <h3>Månedlig betaling: ${formatCurrency(monthlyPayment)}</h3>
+        <h3>Effektiv rente inkl. gebyrer: ${effectiveRate.toFixed(2)}%</h3>
+      `;
+      
+      // Generer detaljert nedbetalingsplan
+      let remainingBalance = P;
+      let html = `<h3>Årlig og månedlig nedbetalingsoversikt</h3>`;
+      
+      for (let year = 1; year <= years; year++) {
+        html += `
+          <div class="year-group">
+            <div class="year-header" onclick="toggleYear(${year})">
+              År ${year} - Gjenstående beløp: ${formatCurrency(remainingBalance)}
+            </div>
+            <table class="month-details" id="year-${year}">
+              <tr>
+                <th>Måned</th>
+                <th>Betaling</th>
+                <th>Rente</th>
+                <th>Avdrag</th>
+                <th>Gjenstående</th>
+              </tr>`;
+        
+        for (let month = 1; month <= 12; month++) {
+          // For å unngå små negative verdier ved siste betaling
+          if (remainingBalance < 0.01) {
+            remainingBalance = 0;
+          }
+          const interest = remainingBalance * monthlyRateNominal;
+          const principal = monthlyPayment - interest;
+          remainingBalance -= principal;
+          
+          html += `
+              <tr>
+                <td>Mnd ${month}</td>
+                <td>${formatCurrency(monthlyPayment)}</td>
+                <td>${formatCurrency(interest)}</td>
+                <td>${formatCurrency(principal)}</td>
+                <td>${formatCurrency(remainingBalance)}</td>
+              </tr>`;
         }
-
-        function beregnEffektivRente(principal, fees, monthlyPayment, months) {
-            const nettoLaan = principal - fees;
-            let rate = 0.0001; // Startverdi
-            let diff = 1;
-            const epsilon = 0.000001; // Presisjon
-            
-            for(let i = 0; i < 100 && diff > epsilon; i++) {
-                let NPV = -nettoLaan;
-                let derivert = 0;
-                
-                for(let m = 1; m <= months; m++) {
-                    const factor = Math.pow(1 + rate, m);
-                    NPV += monthlyPayment / factor;
-                    derivert += -monthlyPayment * m / Math.pow(1 + rate, m + 1);
-                }
-                
-                const oldRate = rate;
-                rate -= NPV/derivert;
-                diff = Math.abs(rate - oldRate);
-            }
-            
-            // Konverter til årlig effektiv rente
-            return (Math.pow(1 + rate, 12) - 1) * 100;
+        
+        html += `</table></div>`;
+      }
+      
+      document.getElementById('nedbetalingsplan').innerHTML = html;
+    }
+    
+    function beregnEffektivRente(principal, fees, monthlyPayment, months) {
+      const nettoLaan = principal - fees;
+      let rate = 0.0001; // Startverdi for månedlig rente
+      let diff = 1;
+      const epsilon = 0.000001; // Ønsket presisjon
+      
+      // Newton-Raphson-metoden for å finne den riktige månedlige renten
+      for (let i = 0; i < 100 && diff > epsilon; i++) {
+        let NPV = -nettoLaan;
+        let derivert = 0;
+        
+        for (let m = 1; m <= months; m++) {
+          const factor = Math.pow(1 + rate, m);
+          NPV += monthlyPayment / factor;
+          derivert += -monthlyPayment * m / Math.pow(1 + rate, m + 1);
         }
-
-        function formatCurrency(amount) {
-            return Math.abs(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$& ') + ' kr';
+        
+        if (Math.abs(derivert) < epsilon) {
+          break; // Unngå deling på null
         }
-
-        function toggleYear(year) {
-            const details = document.getElementById(`year-${year}`);
-            details.classList.toggle('visible');
-        }
-    </script>
+        
+        const oldRate = rate;
+        rate -= NPV / derivert;
+        diff = Math.abs(rate - oldRate);
+      }
+      
+      // Konverter månedlig rente til årlig effektiv rente
+      return (Math.pow(1 + rate, 12) - 1) * 100;
+    }
+    
+    function formatCurrency(amount) {
+      // Bruker Intl.NumberFormat for en pen og korrekt valutaformatering
+      return new Intl.NumberFormat('no-NO', { style: 'currency', currency: 'NOK', minimumFractionDigits: 2 }).format(Math.abs(amount));
+    }
+    
+    function toggleYear(year) {
+      const details = document.getElementById(`year-${year}`);
+      details.classList.toggle('visible');
+    }
+  </script>
 </body>
 </html>
